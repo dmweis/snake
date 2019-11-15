@@ -14,7 +14,7 @@ use rand::{rngs::ThreadRng, Rng};
 const GRID_SIZE: i32 = 20;
 
 struct Snake {
-    position: Vector,
+    position: Vec<Vector>,
     heading: Vector,
     last_move: Instant,
 }
@@ -26,18 +26,26 @@ fn modulo(a: i32, n: i32) -> i32 {
 impl Snake {
     fn new(position: Vector) -> Snake {
         Snake {
-            position,
+            position: vec![position],
             heading: Vector::new(1, 0),
             last_move: Instant::now(),
         }
     }
 
-    fn try_move(&mut self) {
+    fn try_move(&mut self, food: &Vector) -> bool {
         if self.last_move.elapsed().as_millis() > 200 {
-            self.position += self.heading;
-            self.position = Vector::new(modulo(self.position.x as i32, GRID_SIZE), modulo(self.position.y as i32, GRID_SIZE));
+            let head = self.position[0];
+            let mut new_head = head + self.heading;
+            new_head = Vector::new(modulo(new_head.x as i32, GRID_SIZE), modulo(new_head.y as i32, GRID_SIZE));
+            self.position.insert(0, new_head);
             self.last_move = Instant::now();
+
+            if food.distance(new_head) < (0.5f32).powi(2) {
+                return true;
+            }
+            self.position.pop();
         }
+        false
     }
 }
 
@@ -72,8 +80,8 @@ impl State for Game {
         if window.keyboard()[Key::Down].is_down() || window.keyboard()[Key::S].is_down(){
             self.snake.heading = Vector::new(0, 1);
         }
-        self.snake.try_move();
-        if self.food.distance(self.snake.position) < (0.5f32).powi(2) {
+        let ate = self.snake.try_move(&self.food);
+        if ate {
             self.score += 1;
             self.food = Vector::new(self.rng.gen_range(0, GRID_SIZE), self.rng.gen_range(0, GRID_SIZE));
         }
@@ -96,8 +104,12 @@ impl State for Game {
         let food = Rectangle::new((self.food.x * width + 2.5, self.food.y * height + 2.5), (width - 5.0, height - 5.0));
         window.draw(&food, Col(Color::GREEN));
 
-        let snake = Rectangle::new((self.snake.position.x * width + 2.5, self.snake.position.y * height + 2.5), (width - 5.0, height - 5.0));
-        window.draw(&snake, Col(Color::RED));
+        for element in self.snake.position.iter().skip(1) {
+            let snake_head = Rectangle::new((element.x * width + 2.5, element.y * height + 2.5), (width - 5.0, height - 5.0));
+            window.draw(&snake_head, Col(Color::ORANGE));
+        }
+        let snake_head = Rectangle::new((self.snake.position[0].x * width + 2.5, self.snake.position[0].y * height + 2.5), (width - 5.0, height - 5.0));
+        window.draw(&snake_head, Col(Color::RED));
 
         Ok(())
     }
