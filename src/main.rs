@@ -11,11 +11,12 @@ use quicksilver::{
 };
 use instant::Instant;
 use rand::{rngs::ThreadRng, Rng};
+use std::collections::VecDeque;
 
 const GRID_SIZE: i32 = 20;
 
 struct Snake {
-    position: Vec<Vector>,
+    position: VecDeque<Vector>,
     heading: Vector,
     last_move: Instant,
     alive: bool
@@ -27,8 +28,10 @@ fn modulo(a: i32, n: i32) -> i32 {
 
 impl Snake {
     fn new(position: Vector) -> Snake {
+        let mut positions = VecDeque::new();
+        positions.push_front(position);
         Snake {
-            position: vec![position],
+            position: positions,
             heading: Vector::new(1, 0),
             last_move: Instant::now(),
             alive: true,
@@ -40,10 +43,14 @@ impl Snake {
             return false;
         }
         if self.last_move.elapsed().as_millis() > 200 {
-            let head = self.position[0];
-            let mut new_head = head + self.heading;
+            let head = self.position.front();
+            let mut new_head = if let Some(head) = head {
+                self.heading + *head
+            } else {
+                Vector::new(0, 0)
+            };
             new_head = Vector::new(modulo(new_head.x as i32, GRID_SIZE), modulo(new_head.y as i32, GRID_SIZE));
-            self.position.insert(0, new_head);
+            self.position.push_front(new_head);
             self.last_move = Instant::now();
 
             if self.is_in_body(&new_head) {
@@ -54,7 +61,7 @@ impl Snake {
             if food.distance(new_head) < (0.5f32).powi(2) {
                 return true;
             }
-            self.position.pop();
+            self.position.pop_back();
         }
         false
     }
