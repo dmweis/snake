@@ -1,3 +1,3 @@
-rm docs/*
+rm docs/snake.wasm
 cargo web deploy --release
-cp target/deploy/* docs/
+cp target/deploy/*.wasm docs/
