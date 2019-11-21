@@ -10,12 +10,10 @@ title: Snake Game
             if( __cargo_web.canvas ) {
                 return __cargo_web.canvas;
             }
-            var canvas = document.createElement( 'canvas' );
-            document.querySelector( 'body' ).appendChild( canvas );
-            __cargo_web.canvas = canvas;
-
+            __cargo_web.canvas = document.document.getElementById("snake_canvas");
             return canvas;
         }
     });
 </script>
 <script src="snake.js"></script>
+<canvas id="snake_canvas" width="640" height="640" style="cursor: auto;"></canvas>
