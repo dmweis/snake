@@ -219,5 +219,5 @@ impl State for Game {
 }
 
 fn main() {
-    run::<Game>("Snake", Vector::new(1000, 1000), Settings::default());
+    run::<Game>("Snake", Vector::new(640, 640), Settings::default());
 }
