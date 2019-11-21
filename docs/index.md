@@ -2,6 +2,7 @@
 title: Snake Game
 ---
 
+<canvas id="snake_canvas" width="640" height="640" style="cursor: auto;"></canvas>
 <script>
     var Module = {};
     var __cargo_web = {};
@@ -16,4 +17,3 @@ title: Snake Game
     });
 </script>
 <script src="snake.js"></script>
-<canvas id="snake_canvas" width="640" height="640" style="cursor: auto;"></canvas>
