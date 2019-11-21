@@ -40,6 +40,11 @@ if( typeof Rust === "undefined" ) {
                 .then( function( wasm_instance ) {
                     var exports = instance.initialize( wasm_instance );
                     console.log( "Finished loading Rust wasm module 'snake'" );
+                    var container = document.getElementById("game_container");
+                    var canvas = document.getElementsByTagName("canvas")[0];
+                    container.appendChild(canvas);
+                    console.log(canvas);
+                    console.log("done");
                     return exports;
                 })
                 .catch( function( error ) {
