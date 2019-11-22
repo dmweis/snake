@@ -64,14 +64,12 @@ impl Snake {
                 Vector::new(0, 0)
             };
             new_head = Vector::new(modulo(new_head.x as i32, GRID_SIZE), modulo(new_head.y as i32, GRID_SIZE));
-            self.position.push_front(new_head);
-            self.last_move = Instant::now();
-
             if self.is_in_body(&new_head) {
                 self.alive = false;
                 return false;
             }
-
+            self.position.push_front(new_head);
+            self.last_move = Instant::now();
             if food.distance(new_head) < (0.5f32).powi(2) {
                 return true;
             }
@@ -82,7 +80,7 @@ impl Snake {
 
     fn is_in_body(& self, point: &Vector) -> bool {
         let point = point.clone();
-        for element in self.position.iter().skip(1) {
+        for element in self.position.iter() {
             if element.distance(point) < (0.5f32).powi(2) {
                 return true;
             }
