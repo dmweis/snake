@@ -4,7 +4,6 @@ use quicksilver::{
         Background::{Col, Img},
         Color, Font, FontStyle
     },
-    
     input::{Key, ButtonState},
     lifecycle::{Asset, run, State, Window, Settings},
     Result,
@@ -12,6 +11,40 @@ use quicksilver::{
 use instant::Instant;
 use rand::{rngs::ThreadRng, Rng};
 use std::collections::VecDeque;
+use std::ops;
+use std::convert::Into;
+
+#[derive(Debug, Copy, Clone)]
+struct IVector {
+    x: i32,
+    y: i32,
+}
+
+impl IVector {
+    fn new(x: i32, y: i32) -> IVector {
+        IVector {x, y}
+    }
+}
+
+impl ops::Add<IVector> for IVector {
+    type Output = IVector;
+
+    fn add(self, rhs: IVector) -> IVector {
+        IVector::new(self.x + rhs.x, self.y + rhs.y)
+    }
+}
+
+impl Into<Vector> for IVector {
+    fn into(self) -> Vector {
+        Vector::new(self.x, self.y)
+    }
+}
+
+impl PartialEq for IVector {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
+    }
+}
 
 const GRID_SIZE: i32 = 20;
 
@@ -30,10 +63,10 @@ impl ButtonPressed for ButtonState {
 }
 
 struct Snake {
-    position: VecDeque<Vector>,
-    heading: Vector,
+    position: VecDeque<IVector>,
+    heading: IVector,
     last_move: Instant,
-    alive: bool
+    alive: bool,
 }
 
 fn modulo(a: i32, n: i32) -> i32 {
@@ -41,18 +74,18 @@ fn modulo(a: i32, n: i32) -> i32 {
 }
 
 impl Snake {
-    fn new(position: Vector) -> Snake {
+    fn new(position: IVector) -> Snake {
         let mut positions = VecDeque::new();
         positions.push_front(position);
         Snake {
             position: positions,
-            heading: Vector::new(1, 0),
+            heading: IVector::new(1, 0),
             last_move: Instant::now(),
             alive: true,
         }
     }
 
-    fn try_move(&mut self, food: &Vector) -> bool {
+    fn try_move(&mut self, food: &IVector) -> bool {
         if !self.alive {
             return false;
         }
@@ -61,16 +94,16 @@ impl Snake {
             let mut new_head = if let Some(head) = head {
                 self.heading + *head
             } else {
-                Vector::new(0, 0)
+                IVector::new(0, 0)
             };
-            new_head = Vector::new(modulo(new_head.x as i32, GRID_SIZE), modulo(new_head.y as i32, GRID_SIZE));
+            new_head = IVector::new(modulo(new_head.x as i32, GRID_SIZE), modulo(new_head.y as i32, GRID_SIZE));
             if self.is_in_body(&new_head) {
                 self.alive = false;
                 return false;
             }
             self.position.push_front(new_head);
             self.last_move = Instant::now();
-            if food.distance(new_head) < (0.5f32).powi(2) {
+            if *food == new_head {
                 return true;
             }
             self.position.pop_back();
@@ -78,10 +111,10 @@ impl Snake {
         false
     }
 
-    fn is_in_body(& self, point: &Vector) -> bool {
+    fn is_in_body(& self, point: &IVector) -> bool {
         let point = point.clone();
         for element in self.position.iter() {
-            if element.distance(point) < (0.5f32).powi(2) {
+            if *element == point {
                 return true;
             }
         }
@@ -114,7 +147,7 @@ impl ColorPalette {
 struct Game {
     font: Asset<Font>,
     snake: Snake,
-    food: Vector,
+    food: IVector,
     rng: ThreadRng,
     score: i32,
     colors: ColorPalette
@@ -123,8 +156,8 @@ struct Game {
 impl Game {
     fn restart(&mut self) {
         self.score = 0;
-        self.snake = Snake::new(Vector::new(10, 10));
-        self.food = Vector::new(self.rng.gen_range(0, GRID_SIZE), self.rng.gen_range(0, GRID_SIZE));
+        self.snake = Snake::new(IVector::new(10, 10));
+        self.food = IVector::new(self.rng.gen_range(0, GRID_SIZE), self.rng.gen_range(0, GRID_SIZE));
     }
 }
 
@@ -134,8 +167,8 @@ impl State for Game {
         let font = Asset::new(Font::load("ShareTechMono-Regular.ttf"));
         Ok(Game {
             font,
-            snake: Snake::new(Vector::new(10, 10)),
-            food: Vector::new(rng.gen_range(0, GRID_SIZE), rng.gen_range(0, GRID_SIZE)),
+            snake: Snake::new(IVector::new(10, 10)),
+            food: IVector::new(rng.gen_range(0, GRID_SIZE), rng.gen_range(0, GRID_SIZE)),
             rng: rng,
             score: 0,
             colors: ColorPalette::new(),
@@ -144,16 +177,16 @@ impl State for Game {
 
     fn update(&mut self, window: &mut Window) -> Result<()> {
         if window.keyboard()[Key::Left].was_pressed() || window.keyboard()[Key::A].was_pressed(){
-            self.snake.heading = Vector::new(-1, 0);
+            self.snake.heading = IVector::new(-1, 0);
         }
         if window.keyboard()[Key::Right].was_pressed() || window.keyboard()[Key::D].was_pressed(){
-            self.snake.heading = Vector::new(1, 0);
+            self.snake.heading = IVector::new(1, 0);
         }
         if window.keyboard()[Key::Up].was_pressed() || window.keyboard()[Key::W].was_pressed(){
-            self.snake.heading = Vector::new(0, -1);
+            self.snake.heading = IVector::new(0, -1);
         }
         if window.keyboard()[Key::Down].was_pressed() || window.keyboard()[Key::S].was_pressed(){
-            self.snake.heading = Vector::new(0, 1);
+            self.snake.heading = IVector::new(0, 1);
         }
         if window.keyboard()[Key::R].was_pressed() {
             self.restart();
@@ -162,7 +195,7 @@ impl State for Game {
         if ate {
             self.score += 1;
             loop {
-                self.food = Vector::new(self.rng.gen_range(0, GRID_SIZE), self.rng.gen_range(0, GRID_SIZE));
+                self.food = IVector::new(self.rng.gen_range(0, GRID_SIZE), self.rng.gen_range(0, GRID_SIZE));
                 if !self.snake.is_in_body(&self.food) {
                     break;
                 }
@@ -184,14 +217,14 @@ impl State for Game {
             }
         }
 
-        let food = Rectangle::new((self.food.x * width + 2.5, self.food.y * height + 2.5), (width - 5.0, height - 5.0));
+        let food = Rectangle::new((self.food.x as f32 * width + 2.5, self.food.y as f32 * height + 2.5), (width - 5.0, height - 5.0));
         window.draw(&food, Col(self.colors.food));
 
         for element in self.snake.position.iter().skip(1) {
-            let snake_element = Rectangle::new((element.x * width + 2.5, element.y * height + 2.5), (width - 5.0, height - 5.0));
+            let snake_element = Rectangle::new((element.x as f32 * width + 2.5, element.y as f32 * height + 2.5), (width - 5.0, height - 5.0));
             window.draw(&snake_element, Col(self.colors.snake_light));
         }
-        let snake_head = Rectangle::new((self.snake.position[0].x * width + 2.5, self.snake.position[0].y * height + 2.5), (width - 5.0, height - 5.0));
+        let snake_head = Rectangle::new((self.snake.position[0].x as f32 * width + 2.5, self.snake.position[0].y as f32 * height + 2.5), (width - 5.0, height - 5.0));
         window.draw(&snake_head, Col(self.colors.snake_head));
         let lost = !self.snake.alive;
         let score = self.score;
